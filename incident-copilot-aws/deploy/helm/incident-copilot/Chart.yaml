@@ -1,0 +1,6 @@
+apiVersion: v2
+name: incident-copilot
+description: AI agent that investigates Prometheus alerts on Kubernetes (Amazon Bedrock or vLLM + MCP tools)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

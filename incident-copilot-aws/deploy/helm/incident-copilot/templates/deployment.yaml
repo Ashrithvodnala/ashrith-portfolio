@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: incident-copilot
+  labels:
+    {{- include "copilot.labels" . | nindent 4 }}
+spec:
+  replicas: 1   # incidents are kept in memory; one replica keeps the demo consistent
+  selector:
+    matchLabels:
+      {{- include "copilot.selector" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "copilot.selector" . | nindent 8 }}
+    spec:
+      serviceAccountName: incident-copilot
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: copilot
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - { name: http, containerPort: 8000 }
+          env:
+            - { name: LLM_PROVIDER, value: {{ .Values.llm.provider | quote }} }
+            - { name: BEDROCK_MODEL_ID, value: {{ .Values.llm.bedrockModelId | quote }} }
+            - { name: AWS_REGION, value: {{ .Values.llm.awsRegion | quote }} }
+            - { name: OPENAI_BASE_URL, value: {{ .Values.llm.openaiBaseUrl | quote }} }
+            - { name: OPENAI_MODEL, value: {{ .Values.llm.openaiModel | quote }} }
+            - { name: MAX_STEPS, value: {{ .Values.llm.maxSteps | quote }} }
+            - { name: ALLOWED_NAMESPACES, value: {{ .Values.allowedNamespaces | quote }} }
+            - { name: PROMETHEUS_URL, value: {{ .Values.prometheusUrl | quote }} }
+            {{- if .Values.slack.existingSecret }}
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef: { name: {{ .Values.slack.existingSecret }}, key: SLACK_WEBHOOK_URL }
+            {{- end }}
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }

@@ -1,0 +1,57 @@
+# Optional: self-hosted open-source model with vLLM on a GPU node (terraform: enable_gpu_nodes = true).
+# Needs the NVIDIA device plugin:  helm install nvdp nvdp/nvidia-device-plugin -n kube-system
+# Then set llm.provider=openai in the copilot Helm values.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: llm
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm
+  namespace: llm
+  labels: { app: vllm }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: vllm }
+  template:
+    metadata:
+      labels: { app: vllm }
+    spec:
+      nodeSelector: { workload: llm }
+      tolerations:
+        - { key: nvidia.com/gpu, operator: Exists, effect: NoSchedule }
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:latest   # pin a specific version for real use
+          args:
+            - --model=Qwen/Qwen2.5-1.5B-Instruct
+            - --max-model-len=8192
+            - --enable-auto-tool-choice     # lets the agent use tool calling
+            - --tool-call-parser=hermes
+          ports:
+            - { name: http, containerPort: 8000 }
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          resources:
+            limits: { nvidia.com/gpu: 1, memory: 14Gi }
+            requests: { cpu: "2", memory: 8Gi }
+          volumeMounts:
+            - { name: cache, mountPath: /root/.cache/huggingface }
+      volumes:
+        - { name: cache, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm
+  namespace: llm
+  labels: { app: vllm }
+spec:
+  selector: { app: vllm }
+  ports:
+    - { name: http, port: 8000, targetPort: http }

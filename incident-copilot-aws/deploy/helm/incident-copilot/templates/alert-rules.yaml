@@ -1,0 +1,38 @@
+{{- if .Values.monitoring.demoAlertRules }}
+# Fast-firing alerts for the demo namespace, so you don't wait 15 minutes for the default rules.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: incident-copilot-demo
+  labels:
+    {{- include "copilot.labels" . | nindent 4 }}
+spec:
+  groups:
+    - name: demo.workloads
+      rules:
+        - alert: DemoPodCrashLooping
+          expr: increase(kube_pod_container_status_restarts_total{namespace="demo"}[5m]) > 2
+          for: 1m
+          labels: { severity: critical, copilot: "true" }
+          annotations:
+            summary: "Pod {{`{{ $labels.namespace }}/{{ $labels.pod }}`}} is restarting repeatedly"
+        - alert: DemoContainerWaiting
+          expr: max by (namespace, pod, container, reason) (kube_pod_container_status_waiting_reason{namespace="demo", reason=~"ImagePullBackOff|ErrImagePull|CreateContainerConfigError"}) > 0
+          for: 2m
+          labels: { severity: warning, copilot: "true" }
+          annotations:
+            summary: "Container {{`{{ $labels.container }}`}} in {{`{{ $labels.pod }}`}} is stuck in {{`{{ $labels.reason }}`}}"
+        - alert: DemoContainerOOMKilled
+          expr: max by (namespace, pod, container) (kube_pod_container_status_last_terminated_reason{namespace="demo", reason="OOMKilled"}) > 0
+          for: 1m
+          labels: { severity: warning, copilot: "true" }
+          annotations:
+            summary: "Container {{`{{ $labels.container }}`}} in {{`{{ $labels.pod }}`}} was OOMKilled"
+    - name: copilot.self
+      rules:
+        - alert: CopilotInvestigationsFailing
+          expr: sum(increase(copilot_investigations_total{status="error"}[15m])) > 3
+          labels: { severity: warning }
+          annotations:
+            summary: "Incident Copilot investigations are failing (check Bedrock access or vLLM)"
+{{- end }}

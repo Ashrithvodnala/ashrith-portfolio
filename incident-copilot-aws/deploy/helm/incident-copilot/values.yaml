@@ -1,0 +1,33 @@
+# CI updates image.repository/tag. Argo CD deploys the change.
+image:
+  repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/incident-copilot
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+llm:
+  provider: bedrock                      # bedrock | openai (vLLM / Ollama)
+  bedrockModelId: us.amazon.nova-lite-v1:0
+  awsRegion: us-east-1
+  openaiBaseUrl: http://vllm.llm.svc:8000/v1
+  openaiModel: Qwen/Qwen2.5-1.5B-Instruct
+  maxSteps: 6
+
+# IRSA: role created by Terraform (output copilot_role_arn)
+irsaRoleArn: arn:aws:iam::123456789012:role/incident-copilot-app
+
+# Read-only access is limited to these namespaces (empty = all namespaces).
+allowedNamespaces: "demo"
+
+prometheusUrl: http://monitoring-kube-prometheus-prometheus.monitoring:9090
+
+slack:
+  existingSecret: ""     # optional: secret with key SLACK_WEBHOOK_URL
+
+resources:
+  requests: { cpu: 100m, memory: 256Mi }
+  limits: { memory: 512Mi }
+
+monitoring:
+  serviceMonitor: true
+  demoAlertRules: true
+  grafanaDashboard: true

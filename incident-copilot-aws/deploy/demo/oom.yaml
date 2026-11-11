@@ -1,0 +1,27 @@
+# Allocates more memory than its limit -> OOMKilled (exit code 137).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: report-worker
+  labels: { app: report-worker }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: report-worker }
+  template:
+    metadata:
+      labels: { app: report-worker }
+    spec:
+      containers:
+        - name: worker
+          image: python:3.12-alpine
+          command: ["python", "-c"]
+          args:
+            - |
+              print("INFO loading monthly report into memory", flush=True)
+              data = []
+              while True:
+                  data.append(" " * 10_000_000)
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { memory: 128Mi }

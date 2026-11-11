@@ -1,0 +1,17 @@
+# App of apps: apply this one file and Argo CD creates everything else in this folder.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: incident-copilot-root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Ashrithvodnala/ashrith-portfolio.git
+    targetRevision: main
+    path: incident-copilot-aws/deploy/argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }

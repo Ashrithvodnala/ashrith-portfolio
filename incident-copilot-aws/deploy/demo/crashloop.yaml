@@ -1,0 +1,32 @@
+# Starts, logs a config error, exits 1 -> CrashLoopBackOff. The agent should find the missing env var.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payments-api
+  labels: { app: payments-api }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: payments-api }
+  template:
+    metadata:
+      labels: { app: payments-api }
+    spec:
+      containers:
+        - name: api
+          image: busybox:1.36
+          env:
+            - { name: DB_URL, value: "postgres://payments-db:5432/payments" }
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "INFO starting payments-api v2.4.0"
+              echo "INFO loading configuration"
+              if [ -z "$PAYMENTS_DB_URL" ]; then
+                echo "ERROR KeyError: 'PAYMENTS_DB_URL' environment variable is not set (found DB_URL)"
+                echo "FATAL startup failed"
+                exit 1
+              fi
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 32Mi }

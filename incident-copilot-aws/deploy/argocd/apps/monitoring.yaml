@@ -1,0 +1,43 @@
+# Prometheus + Grafana + Alertmanager. Alertmanager sends alerts labelled copilot="true" to the agent.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 65.1.1
+    helm:
+      valuesObject:
+        grafana:
+          sidecar:
+            dashboards: { enabled: true, searchNamespace: ALL }
+        prometheus:
+          prometheusSpec:
+            serviceMonitorSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+        alertmanager:
+          config:
+            route:
+              receiver: "null"
+              group_by: ["alertname", "namespace", "pod"]
+              group_wait: 30s
+              repeat_interval: 4h
+              routes:
+                - receiver: incident-copilot
+                  matchers: ['copilot="true"']
+            receivers:
+              - name: "null"
+              - name: incident-copilot
+                webhook_configs:
+                  - url: http://incident-copilot.copilot.svc/webhook/alertmanager
+                    send_resolved: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: ["CreateNamespace=true", "ServerSideApply=true"]

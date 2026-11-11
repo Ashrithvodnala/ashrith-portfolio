@@ -1,0 +1,12 @@
+{{- if .Values.monitoring.grafanaDashboard }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: incident-copilot-dashboard
+  labels:
+    grafana_dashboard: "1"
+    {{- include "copilot.labels" . | nindent 4 }}
+data:
+  incident-copilot.json: |-
+{{ .Files.Get "files/dashboard.json" | indent 4 }}
+{{- end }}

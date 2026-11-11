@@ -1,0 +1,29 @@
+# Read-only: the agent can look but never change anything in the cluster.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: incident-copilot-readonly
+  labels:
+    {{- include "copilot.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events", "services", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: incident-copilot-readonly
+  labels:
+    {{- include "copilot.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: incident-copilot-readonly
+subjects:
+  - kind: ServiceAccount
+    name: incident-copilot
+    namespace: {{ .Release.Namespace }}

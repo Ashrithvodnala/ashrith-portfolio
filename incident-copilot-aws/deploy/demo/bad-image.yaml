@@ -1,0 +1,19 @@
+# Points at an image tag that does not exist -> ImagePullBackOff.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout-web
+  labels: { app: checkout-web }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: checkout-web }
+  template:
+    metadata:
+      labels: { app: checkout-web }
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.99.99-does-not-exist
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
