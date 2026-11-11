@@ -3,10 +3,10 @@ name: opspilot-infra
 
 on:
   pull_request:
-    paths: ["opspilot-azure/infra/**", "opspilot-azure/deploy/**"]
+    paths: ["opspilot-azure/infra/**", "opspilot-azure/deploy/**", ".github/workflows/opspilot-infra.yml"]
   push:
     branches: [main]
-    paths: ["opspilot-azure/infra/**", "opspilot-azure/deploy/**"]
+    paths: ["opspilot-azure/infra/**", "opspilot-azure/deploy/**", ".github/workflows/opspilot-infra.yml"]
 
 jobs:
   terraform:

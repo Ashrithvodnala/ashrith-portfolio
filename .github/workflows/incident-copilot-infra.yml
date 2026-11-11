@@ -3,10 +3,10 @@ name: incident-copilot-infra
 
 on:
   pull_request:
-    paths: ["incident-copilot-aws/infra/**", "incident-copilot-aws/deploy/**"]
+    paths: ["incident-copilot-aws/infra/**", "incident-copilot-aws/deploy/**", ".github/workflows/incident-copilot-infra.yml"]
   push:
     branches: [main]
-    paths: ["incident-copilot-aws/infra/**", "incident-copilot-aws/deploy/**"]
+    paths: ["incident-copilot-aws/infra/**", "incident-copilot-aws/deploy/**", ".github/workflows/incident-copilot-infra.yml"]
 
 jobs:
   terraform:
