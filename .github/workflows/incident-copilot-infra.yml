@@ -1,0 +1,35 @@
+# Validates Terraform and the Helm chart on every change. Terraform apply is run by hand (see README).
+name: incident-copilot-infra
+
+on:
+  pull_request:
+    paths: ["incident-copilot-aws/infra/**", "incident-copilot-aws/deploy/**"]
+  push:
+    branches: [main]
+    paths: ["incident-copilot-aws/infra/**", "incident-copilot-aws/deploy/**"]
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: incident-copilot-aws/infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false
+      - run: terraform validate
+
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: helm lint incident-copilot-aws/deploy/helm/incident-copilot
+      - name: kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          helm template copilot incident-copilot-aws/deploy/helm/incident-copilot \
+            | ./kubeconform -strict -ignore-missing-schemas -summary
+          ./kubeconform -strict -ignore-missing-schemas -summary incident-copilot-aws/deploy/demo incident-copilot-aws/deploy/vllm

@@ -1,0 +1,81 @@
+# Incident Copilot CI/CD: test -> build -> scan -> push to ECR -> bump image tag in Git -> Argo CD deploys.
+name: incident-copilot-ci
+
+on:
+  pull_request:
+    paths: ["incident-copilot-aws/app/**", ".github/workflows/incident-copilot-ci.yml"]
+  push:
+    branches: [main]
+    paths: ["incident-copilot-aws/app/**", ".github/workflows/incident-copilot-ci.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: incident-copilot-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: incident-copilot-aws
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: incident-copilot-aws/app/requirements*.txt
+      - run: pip install -r app/requirements-dev.txt
+      - name: Lint
+        run: ruff check app
+      - name: Unit + MCP integration tests
+        run: pytest -q app/tests
+        env:
+          PYTHONPATH: app
+
+  build-and-deploy:
+    if: github.event_name != 'pull_request' && vars.AWS_ROLE_ARN != ''
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # OIDC login to AWS, no access keys stored in GitHub
+      contents: write   # commit the new image tag
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: AWS login (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image
+        run: docker build -f app/Dockerfile -t "${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}" .
+
+      - name: Scan image (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Push to ECR
+        run: docker push "${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}"
+
+      - name: Update Helm image tag (GitOps)
+        run: |
+          f=deploy/helm/incident-copilot/values.yaml
+          sed -i "s|^  repository: .*|  repository: ${{ vars.ECR_REPOSITORY_URL }}|" "$f"
+          sed -i "s|^  tag: .*|  tag: \"${{ github.sha }}\"|" "$f"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "incident-copilot: deploy image ${{ github.sha }}"
+          git pull --rebase
+          git push
