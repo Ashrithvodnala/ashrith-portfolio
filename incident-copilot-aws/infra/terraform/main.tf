@@ -62,7 +62,7 @@ module "eks" {
         max_size       = 1
         desired_size   = 1
         labels         = { workload = "llm" }
-        taints         = {
+        taints = {
           gpu = { key = "nvidia.com/gpu", value = "true", effect = "NO_SCHEDULE" }
         }
       }
@@ -83,7 +83,7 @@ resource "aws_ecr_repository" "app" {
 
 resource "aws_ecr_lifecycle_policy" "app" {
   repository = aws_ecr_repository.app.name
-  policy     = jsonencode({
+  policy = jsonencode({
     rules = [{
       rulePriority = 1
       description  = "keep the last 20 images"
@@ -96,8 +96,8 @@ resource "aws_ecr_lifecycle_policy" "app" {
 # ---------- IRSA: the copilot pod may call Bedrock, nothing else ----------
 data "aws_iam_policy_document" "bedrock" {
   statement {
-    sid       = "InvokeModels"
-    actions   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+    sid     = "InvokeModels"
+    actions = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
     resources = [
       "arn:aws:bedrock:*::foundation-model/*",
       "arn:aws:bedrock:*:${data.aws_caller_identity.current.account_id}:inference-profile/*",
