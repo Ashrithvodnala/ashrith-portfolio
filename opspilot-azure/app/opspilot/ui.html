@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpsPilot</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 16px;color:#1f2937}
+  h1{margin-bottom:4px} .sub{color:#6b7280;margin-top:0}
+  textarea{width:100%;height:90px;padding:10px;font-size:15px;border:1px solid #d1d5db;border-radius:8px}
+  button{margin-top:8px;padding:10px 18px;border:0;border-radius:8px;background:#1f3864;color:#fff;font-size:15px;cursor:pointer}
+  .answer{white-space:pre-wrap;background:#f3f4f6;border-radius:8px;padding:14px;margin-top:18px}
+  .meta{color:#6b7280;font-size:13px;margin-top:6px}
+</style>
+</head>
+<body>
+<h1>OpsPilot</h1>
+<p class="sub">Ask a DevOps question. Answers come only from your team's runbooks.</p>
+<textarea id="q" placeholder="e.g. A pod is in CrashLoopBackOff. What should I check first?"></textarea>
+<button id="go">Ask</button>
+<div id="out"></div>
+<script>
+const btn = document.getElementById('go');
+btn.onclick = async () => {
+  const out = document.getElementById('out');
+  out.innerHTML = '<p class="meta">Thinking…</p>';
+  try {
+    const r = await fetch('/ask', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({question: document.getElementById('q').value})});
+    const d = await r.json();
+    const div = document.createElement('div'); div.className = 'answer'; div.textContent = d.answer || d.detail;
+    const meta = document.createElement('div'); meta.className = 'meta';
+    meta.textContent = d.blocked ? `Blocked: ${d.reason}` : `Sources: ${(d.sources||[]).join(', ') || 'none'} · tokens: ${d.tokens ?? 0}`;
+    out.replaceChildren(div, meta);
+  } catch (e) { out.textContent = 'Request failed: ' + e; }
+};
+</script>
+</body>
+</html>
