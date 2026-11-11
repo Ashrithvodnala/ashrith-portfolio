@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars (git-ignored) and adjust.
+region           = "us-east-1"
+github_repo      = "Ashrithvodnala/ashrith-portfolio"
+enable_gpu_nodes = false
