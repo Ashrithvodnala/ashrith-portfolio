@@ -1,0 +1,6 @@
+apiVersion: v2
+name: opspilot
+description: RAG assistant that answers DevOps questions from runbooks (Azure OpenAI + pgvector)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

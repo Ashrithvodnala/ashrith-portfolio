@@ -1,0 +1,13 @@
+{{- if .Values.monitoring.grafanaDashboard }}
+# Picked up automatically by the Grafana sidecar in kube-prometheus-stack.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opspilot-dashboard
+  labels:
+    grafana_dashboard: "1"
+    {{- include "opspilot.labels" . | nindent 4 }}
+data:
+  opspilot.json: |-
+{{ .Files.Get "files/dashboard.json" | indent 4 }}
+{{- end }}

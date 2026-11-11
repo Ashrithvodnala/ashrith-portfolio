@@ -1,0 +1,54 @@
+# The CI pipeline updates image.repository/tag automatically. Argo CD then deploys the change.
+image:
+  repository: opspilotacr.azurecr.io/opspilot
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+llm:
+  provider: azure                     # azure | local
+  azureEndpoint: "https://aoai-opspilot-xxxxx.openai.azure.com/"
+  apiVersion: "2024-10-21"
+  chatModel: gpt-4o-mini              # Azure OpenAI deployment name
+  embeddingModel: text-embedding-3-small
+  embeddingDim: 1536
+
+rag:
+  topK: 4
+  maxDistance: "0.55"
+
+# Workload identity: the app gets an Entra ID token instead of an API key.
+workloadIdentity:
+  clientId: "00000000-0000-0000-0000-000000000000"   # terraform output app_identity_client_id
+
+# Secret created once by hand (see README):  kubectl create secret generic opspilot-db ...
+database:
+  existingSecret: opspilot-db
+  key: DATABASE_URL
+
+adminToken:
+  existingSecret: opspilot-admin
+  key: ADMIN_TOKEN
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  requests: { cpu: 100m, memory: 256Mi }
+  limits: { memory: 512Mi }
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+ingestJob:
+  enabled: true     # loads the runbooks into pgvector after every sync
+
+monitoring:
+  serviceMonitor: true       # requires kube-prometheus-stack
+  prometheusRules: true
+  grafanaDashboard: true

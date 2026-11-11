@@ -1,0 +1,27 @@
+{{- if .Values.ingestJob.enabled }}
+# Runs after each Helm install/upgrade (Argo CD treats it as a PostSync hook).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: opspilot-ingest
+  labels:
+    {{- include "opspilot.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: opspilot
+      restartPolicy: OnFailure
+      containers:
+        - name: ingest
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ["python", "-m", "opspilot.ingest", "/app/docs/runbooks"]
+          env:
+            {{- include "opspilot.env" . | nindent 12 }}
+{{- end }}

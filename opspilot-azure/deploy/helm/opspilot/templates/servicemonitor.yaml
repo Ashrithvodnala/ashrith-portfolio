@@ -1,0 +1,16 @@
+{{- if .Values.monitoring.serviceMonitor }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: opspilot
+  labels:
+    {{- include "opspilot.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "opspilot.selector" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /metrics/
+      interval: 15s
+{{- end }}

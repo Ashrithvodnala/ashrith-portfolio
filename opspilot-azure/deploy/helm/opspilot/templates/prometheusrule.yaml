@@ -1,0 +1,32 @@
+{{- if .Values.monitoring.prometheusRules }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: opspilot
+  labels:
+    {{- include "opspilot.labels" . | nindent 4 }}
+spec:
+  groups:
+    - name: opspilot.llm
+      rules:
+        - alert: OpsPilotHighLLMLatency
+          expr: histogram_quantile(0.95, sum by (le) (rate(opspilot_llm_latency_seconds_bucket{operation="chat"}[5m]))) > 8
+          for: 10m
+          labels: { severity: warning }
+          annotations:
+            summary: "OpsPilot p95 chat latency is above 8s"
+            description: "Azure OpenAI responses are slow. Check quota (TPM) and region health."
+        - alert: OpsPilotLLMErrors
+          expr: sum(rate(opspilot_llm_errors_total[5m])) / clamp_min(sum(rate(opspilot_llm_latency_seconds_count[5m])), 1e-9) > 0.05
+          for: 5m
+          labels: { severity: critical }
+          annotations:
+            summary: "More than 5% of LLM calls are failing"
+            description: "Check pod logs for 429 (rate limit) or 401 (identity) errors."
+        - alert: OpsPilotGuardrailSpike
+          expr: sum(increase(opspilot_guardrail_blocks_total{reason="prompt_injection"}[15m])) > 10
+          labels: { severity: warning }
+          annotations:
+            summary: "Spike in prompt-injection attempts"
+            description: "More than 10 prompt-injection attempts in 15 minutes."
+{{- end }}

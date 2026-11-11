@@ -1,0 +1,21 @@
+# Argo CD watches this Git path. Any commit that changes the chart or image tag is deployed automatically.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: opspilot
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Ashrithvodnala/ashrith-portfolio.git
+    targetRevision: main
+    path: opspilot-azure/deploy/helm/opspilot
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: opspilot
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
