@@ -62,7 +62,7 @@ module "eks" {
         max_size       = 1
         desired_size   = 1
         labels         = { workload = "llm" }
-        taints = {
+        taints         = {
           gpu = { key = "nvidia.com/gpu", value = "true", effect = "NO_SCHEDULE" }
         }
       }
