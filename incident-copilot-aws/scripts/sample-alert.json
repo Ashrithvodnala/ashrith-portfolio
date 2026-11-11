@@ -1,0 +1,22 @@
+{
+  "receiver": "incident-copilot",
+  "status": "firing",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "DemoPodCrashLooping",
+        "severity": "critical",
+        "namespace": "demo",
+        "pod": "payments-api-7d9f8c6b5-x2kqp",
+        "container": "api",
+        "copilot": "true"
+      },
+      "annotations": {
+        "summary": "Pod demo/payments-api-7d9f8c6b5-x2kqp is restarting repeatedly"
+      },
+      "startsAt": "2026-11-11T14:00:00Z",
+      "fingerprint": "demo-crashloop-1"
+    }
+  ]
+}

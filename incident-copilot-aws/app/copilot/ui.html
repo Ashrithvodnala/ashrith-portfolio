@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Incident Copilot</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:900px;margin:32px auto;padding:0 16px;color:#1f2937}
+  h1{margin-bottom:2px}.sub{color:#6b7280;margin-top:0}
+  .card{border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin:14px 0}
+  .head{display:flex;justify-content:space-between;align-items:center}
+  .sev{font-size:12px;padding:2px 8px;border-radius:999px;background:#fee2e2;color:#991b1b}
+  .sev.warning{background:#fef3c7;color:#92400e}
+  pre{white-space:pre-wrap;background:#f9fafb;padding:12px;border-radius:8px;font-family:inherit}
+  .meta{color:#6b7280;font-size:13px}
+</style>
+</head>
+<body>
+<h1>Incident Copilot</h1>
+<p class="sub">AI investigations of Prometheus alerts. Refreshes every 10 seconds.</p>
+<div id="list"><p class="meta">No incidents yet.</p></div>
+<script>
+async function load(){
+  const r = await fetch('/incidents'); const items = await r.json();
+  if(!items.length) return;
+  const list = document.getElementById('list'); list.replaceChildren();
+  for (const i of items){
+    const card = document.createElement('div'); card.className='card';
+    const head = document.createElement('div'); head.className='head';
+    const t = document.createElement('strong'); t.textContent = `${i.alert} · ${i.namespace || 'cluster'}`;
+    const s = document.createElement('span'); s.className = 'sev ' + i.severity; s.textContent = i.severity;
+    head.append(t, s);
+    const pre = document.createElement('pre'); pre.textContent = i.report;
+    const meta = document.createElement('div'); meta.className='meta';
+    meta.textContent = `${i.created_at} · tools: ${(i.tools_used||[]).join(', ') || 'none'} · ${i.seconds}s · ${i.tokens} tokens · ${i.provider}`;
+    card.append(head, pre, meta); list.append(card);
+  }
+}
+load(); setInterval(load, 10000);
+</script>
+</body>
+</html>
